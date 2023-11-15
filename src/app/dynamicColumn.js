@@ -9,13 +9,8 @@ import {
 } from "rsuite";
 import { mockUsers } from "./mock";
 import React from "react";
-const Message = React.forwardRef(({ type, ...rest }, ref) => {
-  return (
-    <Notification ref={ref} {...rest} type={type} header={type}>
-      <Placeholder.Paragraph style={{ width: 320 }} rows={3} />
-    </Notification>
-  );
-});
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const { Column, HeaderCell, Cell } = Table;
 const defaultData = mockUsers(10);
 
@@ -58,10 +53,7 @@ const ActionCell = ({ rowData, dataKey, onClick, ...props }) => {
 const CompactHeaderCell = (props) => (
   <HeaderCell {...props} style={{ padding: 4 }} />
 );
-//  key: "id",
-//   label: "Id",
-//   fixed: true,
-//   width: 70,
+
 const defaultColumns = [
   {
     key: "id",
@@ -125,6 +117,11 @@ export const DynamicColumn = () => {
   const [columnKeys, setColumnKeys] = React.useState(
     defaultColumns.map((column) => column.key)
   );
+  // const notify = (props) =>
+  //   toast(props, {
+  //     autoClose: false,
+  //   });
+  const notify = (props) => toast(props);
 
   const columns = defaultColumns.filter((column) =>
     columnKeys.some((key) => key === column.key)
@@ -137,19 +134,6 @@ export const DynamicColumn = () => {
     const nextData = Object.assign([], data);
     nextData.find((item) => item.id === id)[key] = value;
     console.log("data for===== nextData1", nextData);
-    if (
-      parseInt(nextData[0].one) > nextData[0].total ||
-      parseInt(nextData[0].two) > nextData[0].total ||
-      parseInt(nextData[0].three) > nextData[0].total
-    ) {
-      <Message type="error" />;
-      console.log(
-        "Invalid configuration: one, two, or three values are greater than total"
-      );
-    } else {
-      Alert("Valid configuration");
-    }
-
     setData(nextData);
   };
   const handleEditState = (id) => {
@@ -160,6 +144,45 @@ export const DynamicColumn = () => {
     setData(nextData);
   };
   // ============
+  const handleIncreaseRows = () => {
+    setData((prevData) => {
+      const updatedData = [
+        ...prevData,
+        {
+          id: prevData.length > 0 ? prevData[prevData.length - 1].id + 1 : 1,
+          total: getRandomInt(50, 100),
+          status: "EDIT",
+        },
+      ];
+      console.log("#1", updatedData); // You can log the updatedData if needed
+      return updatedData;
+    });
+  };
+
+  const handleValidationTotal = (rowData) => {
+    console.log("#rowid ", rowData);
+    setTimeout(() => {
+      const sumOfProperties = Object.keys(rowData)
+        .filter((key) => key !== "id" && key !== "total" && key !== "status")
+        .reduce((sum, key) => sum + parseInt(rowData[key], 10), 0);
+      console.log(
+        "#sumOfProperties, rowData.one, rowData.two, rowData.three",
+        sumOfProperties,
+        rowData.one,
+        rowData.two,
+        rowData.three
+      );
+      if (
+        parseInt(rowData.one) > rowData.total ||
+        parseInt(rowData.two) > rowData.total ||
+        parseInt(rowData.three) > rowData.total ||
+        sumOfProperties > rowData.total
+      ) {
+        notify("Value or sum should be lower than total value");
+      }
+    }, 2000);
+  };
+
   return (
     <div>
       <div>
@@ -253,6 +276,9 @@ export const DynamicColumn = () => {
         onChange={setColumnKeys}
         cleanable={false}
       />
+      <Button onClick={handleIncreaseRows} appearance="ghost">
+        Add Rows
+      </Button>
       <hr />
       <div style={{ height: autoHeight ? "auto" : 400 }}>
         <Table
@@ -269,6 +295,9 @@ export const DynamicColumn = () => {
           // rowHeight={compact ? 30 : 46}
           headerHeight={compact ? 60 : 70}
           rowHeight={compact ? 60 : 46}
+          onRowClick={(data) => {
+            handleValidationTotal(data);
+          }}
         >
           {columns.map((column) => {
             const { key, label, ...rest } = column;
@@ -287,6 +316,7 @@ export const DynamicColumn = () => {
           })}
         </Table>
       </div>
+      <ToastContainer />
     </div>
   );
 };
